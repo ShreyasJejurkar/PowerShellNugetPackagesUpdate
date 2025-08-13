@@ -10,21 +10,13 @@
 .PARAMETER Path
     The directory path to scan for .csproj files. Defaults to the current directory (".")
 
-.PARAMETER IncludeOraclePackages
-    A switch parameter indicating whether Oracle packages should be included in the update process.
-    By default, Oracle packages are skipped. Use -IncludeOraclePackages to include them.
-
 .EXAMPLE
     .\Update-NuGetPackages.ps1
-    Scans the current directory for .csproj files and updates packages (excluding Oracle packages by default)
+    Scans the current directory for .csproj files and updates packages
 
 .EXAMPLE
     .\Update-NuGetPackages.ps1 -Path "C:\Projects\MyApp"
-    Scans the specified directory for .csproj files and updates packages (excluding Oracle packages)
-
-.EXAMPLE
-    .\Update-NuGetPackages.ps1 -Path "C:\Projects\MyApp" -IncludeOraclePackages
-    Scans the specified directory for .csproj files and updates all packages including Oracle packages
+    Scans the specified directory for .csproj files and updates packages
 
 .NOTES
     Author: Shreyas Jejurkar
@@ -32,8 +24,7 @@
     Date: 2025-08-13
 #>
 param(
-    [string]$Path = ".",
-    [switch]$IncludeOraclePackages
+    [string]$Path = "."
 )
 
 # Helper function to parse dotnet list output
@@ -66,8 +57,7 @@ function ConvertFrom-DotnetListOutput {
 # Function to update outdated packages in a csproj file
 function Update-OutdatedPackages {
     param(
-        [string]$CsprojPath,
-        [bool]$IncludeOracle
+        [string]$CsprojPath
     )
 
     Write-Host ("Processing {0}" -f $CsprojPath) -ForegroundColor Cyan
@@ -108,11 +98,6 @@ function Update-OutdatedPackages {
 
         $updatedCount = 0
         foreach ($packageName in $latestPackages.Keys) {
-            if (-not $IncludeOracle -and $packageName -like "Oracle.*") {
-                Write-Host ("Skipping Oracle package: {0}" -f $packageName) -ForegroundColor Yellow
-                continue
-            }
-
             $latestVersion = $latestPackages[$packageName]
             Write-Host ("Attempting to update {0} to {1}" -f $packageName, $latestVersion) -ForegroundColor Cyan
             dotnet add $CsprojPath package $packageName -v $latestVersion 2>$null
@@ -164,7 +149,7 @@ if (-not $csprojFiles) {
 Write-Host ("Found {0} .csproj file(s)" -f $csprojFiles.Count) -ForegroundColor Cyan
 
 foreach ($csprojFile in $csprojFiles) {
-    Update-OutdatedPackages -CsprojPath $csprojFile.FullName -IncludeOracle $IncludeOraclePackages.IsPresent
+    Update-OutdatedPackages -CsprojPath $csprojFile.FullName
 }
 
 Write-Host "Package update process completed." -ForegroundColor Green
